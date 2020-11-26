@@ -8,9 +8,7 @@ library(magrittr)
 library(xts)
 library(dplyr)
 
-# Необходимо загрузить цены активов IWM, SPY, TLT с помощью функции getSymbols из библиотеки quantmod.
-# В качествe цены используем столбец  Adjusted close.
-# Данные загрузим с 2005-01-01 по 2020-11-15
+
 from <- "2005-01-01"
 to <- "2020-11-15"
 asset1 <- new.env()
@@ -42,10 +40,7 @@ data <- na.omit(cbind(asset1[['IWM']][,6],asset2[['SPY']][,6], asset3[['TLT']][,
 }
 
 # Функция, считающая вектор весов в последней точке данных.
-# Если средняя доходность IWM < 0 и SPY < 0, то покупаем TLT.
-# Иначе, если средняя доходность SPY > IWM, то покупаем SPY.
-# Иначе покупаем IWM.
-# Функция должна возвращать вектор весов. Например: c(1, 0, 0)
+
 getWeights <- function(data) {
   IWM=(data[length(data[,1]),1]/data[length(data[,1])-21,1]+data[length(data[,1]),1]/data[length(data[,1])-62,1]+data[length(data[,1]),1]/data[length(data[,1])-100,1]-3)/3
   SPY=(data[length(data[,2]),2]/data[length(data[,2])-21,2]+data[length(data[,2]),2]/data[length(data[,2])-62,2]+data[length(data[,2]),2]/data[length(data[,2])-100,2]-3)/3
@@ -73,7 +68,7 @@ while(day <= nrow(backtest.data)) {
   range <- (day - lookback):day
 
 
-  # Необходимо посчитать и занести в в вектор pnl результат торгового дня
+  #вектор pnl - результат торгового дня
   pnl_leg[day,] <-assets.count*backtest.data[day, ] - assets.count*backtest.data[day-1, ]  # YOUR CODE
   # Если мы сейчас должны удерживать позицию
   if (day < trade.day) {
@@ -91,26 +86,19 @@ while(day <= nrow(backtest.data)) {
 
 plot(pnl_leg[,'SPY.Adjusted'] + pnl_leg[,'IWM.Adjusted'] + pnl_leg[,'TLT.Adjusted'], type = 'l')
 len <-nrow(backtest.data)
-# HW 1
-# Посчитать суммарное изменение денег за каждый день по портфелю
+
 pnl <- pnl_leg[,'SPY.Adjusted'] + pnl_leg[,'IWM.Adjusted'] + pnl_leg[,'TLT.Adjusted']
-#pnl_next <- pnl_leg[1:len-1,'SPY.Adjusted'] + pnl_leg[1:len-1,'IWM.Adjusted'] + pnl_leg[1:len-1,'TLT.Adjusted']
-#pnl <- pnl - pnl_next 
-#pnl<-append(pnl, 0, after = 0)
+
 
 plot(pnl, type = 'l')
 df <- data.frame(index = 1:length(pnl), value = pnl)
 write.csv(df, "pnl_inc.csv", row.names = FALSE)
-# HW 2
-# Необходимо найти количество денег в каждый день.
-# Для этого можно первое приращение приравнять к стартовым деньгам и от полученного вектора взять cumsum
+
 m <- cumsum(pnl)+money
 plot(m, type = 'l')
 df <- data.frame(index = 1:length(m), value = m)
 write.csv(df, "pnl.csv", row.names = FALSE)
 
-# Напишите функции, вычисляющие каждую метрику. Единственный аргумент каждой функции - массив приращений PnL
-# Пример:
 sortino_fun <- function(x) {
   sum(x) / sqrt(sum(pmin(x, 0)**2)) * sqrt(252 / length(x))
 }
@@ -126,24 +114,16 @@ return_ann_fun <- function(x) {
 std_ann_fun <- function(x) {
   sd(x) * sqrt(252) 
 }
-#sd_ret =  sqrt(sum((pnl  - sum(x)/length(x))**2)/(length(x)-1))
+
 functions <- list('sharpe'= sharpe_fun,
                   'max_drawdown'= max_drawdown_fun,
                   'return_ann' = return_ann_fun, 
                   'std_ann' = std_ann_fun)
 
-# HW 3
-# посчитайте статистики из листа functions для всего портфеля
-# результатом должен быть list, а в каждой ячейке одно число
-# используйте lapply
 
 stats_sum <- lapply(1:4,function(i) functions[[i]](pnl)) # YOUR CODE
 saveRDS(stats_sum, 'stats_sum.RDS')
 
-# HW 4
-# посчитайте статистики для каждого актива
-# результатом должен быть list, а в каждой ячейке 3 числа
-# используйте lapply and apply
 
 stats_by_leg  <- lapply(1:4,function(i) apply(pnl_leg, 2,functions[[i]])) # YOUR CODE
 saveRDS(stats_by_leg, 'stats_by_leg.RDS')
